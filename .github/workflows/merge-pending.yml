@@ -1,0 +1,40 @@
+name: Merge pending contribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      pending_file:
+        description: "Path under pending/, e.g. pending/kmb_e42_….json"
+        required: true
+        type: string
+      remove_pending:
+        description: "Delete pending file after merge"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Merge pending → bus-shapes.json
+        run: |
+          EXTRA=""
+          if [ "${{ inputs.remove_pending }}" = "true" ]; then
+            EXTRA="--remove-pending"
+          fi
+          node scripts/merge-pending.mjs "${{ inputs.pending_file }}" $EXTRA
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bus-shapes.json published/ pending/ || true
+          git diff --staged --quiet && echo "No changes" && exit 0
+          git commit -m "Publish path from ${{ inputs.pending_file }}"
+          git push

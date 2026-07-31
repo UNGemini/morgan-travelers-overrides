@@ -1,0 +1,34 @@
+name: Validate shapes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate bus-shapes.json
+        run: |
+          node -e "
+          const fs=require('fs');
+          const j=JSON.parse(fs.readFileSync('bus-shapes.json','utf8'));
+          if (!Array.isArray(j.routes)) throw new Error('routes must be array');
+          for (const r of j.routes) {
+            if (!r.id || !r.route_short_name) throw new Error('route missing id/name');
+            if (!Array.isArray(r.coordinates) || r.coordinates.length < 2)
+              throw new Error(r.id + ' bad coordinates');
+            for (const c of r.coordinates) {
+              if (!Array.isArray(c) || c.length < 2) throw new Error(r.id + ' bad pt');
+              const lon=+c[0], lat=+c[1];
+              if (!(lon>113 && lon<115 && lat>22 && lat<23))
+                throw new Error(r.id + ' out of HK bounds ' + lon + ',' + lat);
+            }
+          }
+          console.log('OK', j.routes.length, 'routes');
+          "
