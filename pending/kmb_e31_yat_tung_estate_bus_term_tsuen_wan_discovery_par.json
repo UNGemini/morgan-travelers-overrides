@@ -1,6 +1,6 @@
 {
   "schema": "morgan.travelers.bus-shape.v1",
-  "status": "pending_review",
+  "status": "merged",
   "id": "kmb_e31_yat_tung_estate_bus_term_tsuen_wan_discovery_par",
   "agency": "KMB",
   "route_short_name": "E31",
@@ -4306,5 +4306,7 @@
   "contributor": "UNGemini",
   "submitted_at": "2026-08-01T16:17:08.097Z",
   "app_version": "0.4.0",
-  "received_at": "2026-08-01T16:17:08.281Z"
+  "received_at": "2026-08-01T16:17:08.281Z",
+  "merged_at": "2026-08-02T06:08:38.919Z",
+  "published_id": "kmb_e31_yat_tung_estate_bus_term_tsuen_wan_discovery_par"
 }
