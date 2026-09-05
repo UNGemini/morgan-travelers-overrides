@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * Promote a pending contribution JSON into bus-shapes.json (published).
+ * Promote a pending contribution JSON into the published split store:
+ * bus-shapes/<id>.json + index.json, with the stub bus-shapes.json
+ * refreshed so old URLs and older app builds keep working.
  *
  * Usage:
  *   node scripts/merge-pending.mjs pending/foo.json
@@ -10,6 +12,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  SHAPES_DIR,
+  SHAPES_JSON,
+  loadPublishedBusShapes,
+  writeSplitBusShapes,
+  writeBusShapesStub,
+} from "./bus-shapes-store.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -41,9 +50,8 @@ if (!Array.isArray(draft.coordinates) || draft.coordinates.length < 2) {
   process.exit(1);
 }
 
-const shapesPath = path.join(root, "bus-shapes.json");
-const shapes = JSON.parse(fs.readFileSync(shapesPath, "utf8"));
-if (!Array.isArray(shapes.routes)) shapes.routes = [];
+const published = loadPublishedBusShapes(SHAPES_JSON, SHAPES_DIR);
+const routes = Array.isArray(published.routes) ? published.routes : [];
 
 const entry = {
   id: String(draft.id || path.basename(abs, ".json")).slice(0, 120),
@@ -67,7 +75,7 @@ const entry = {
   source_draft_id: draft.id || "",
 };
 
-const idx = shapes.routes.findIndex(
+const idx = routes.findIndex(
   (r) =>
     String(r.id) === entry.id ||
     (String(r.route_short_name).toUpperCase() ===
@@ -77,22 +85,24 @@ const idx = shapes.routes.findIndex(
 );
 
 if (idx >= 0) {
-  console.info("Replacing existing route at index", idx, shapes.routes[idx].id);
-  shapes.routes[idx] = entry;
+  console.info("Replacing existing route at index", idx, routes[idx].id);
+  routes[idx] = entry;
 } else {
   console.info("Appending new route", entry.id);
-  shapes.routes.push(entry);
+  routes.push(entry);
 }
 
-shapes.updated_at = new Date().toISOString().slice(0, 10);
-shapes.note =
-  shapes.note ||
-  "Hand-reviewed bus route path overrides. Merged from pending/ contributions.";
+const data = {
+  updated_at: new Date().toISOString().slice(0, 10),
+  note:
+    published.note ||
+    "Hand-reviewed bus route path overrides. Merged from pending/ contributions.",
+  routes,
+};
 
-const out = JSON.stringify(shapes, null, 2) + "\n";
 console.info(
   "Published routes:",
-  shapes.routes.length,
+  routes.length,
   "· coords:",
   entry.coordinates.length,
   "· visual_stops:",
@@ -100,13 +110,12 @@ console.info(
 );
 
 if (dryRun) {
-  console.info("[dry-run] would write bus-shapes.json and published/ mirror");
+  console.info("[dry-run] would write bus-shapes/<id>.json + index.json + stub");
   process.exit(0);
 }
 
-fs.writeFileSync(shapesPath, out);
-fs.mkdirSync(path.join(root, "published"), { recursive: true });
-fs.writeFileSync(path.join(root, "published", "bus-shapes.json"), out);
+const index = writeSplitBusShapes(SHAPES_DIR, data);
+writeBusShapesStub(SHAPES_JSON, index);
 
 if (removePending) {
   fs.unlinkSync(abs);
@@ -123,4 +132,8 @@ if (removePending) {
   console.info("Marked pending as merged:", abs);
 }
 
-console.info("Done → bus-shapes.json");
+console.info(
+  "Done → bus-shapes/" +
+    index.files[index.files.length - 1] +
+    " · bus-shapes/index.json · stub bus-shapes.json",
+);

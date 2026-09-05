@@ -13,14 +13,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Validate bus-shapes.json
+      - name: Validate split bus-shapes (index + per-route files + stub)
         run: |
           node -e "
           const fs=require('fs');
-          const j=JSON.parse(fs.readFileSync('bus-shapes.json','utf8'));
-          if (!Array.isArray(j.routes)) throw new Error('routes must be array');
-          for (const r of j.routes) {
-            if (!r.id || !r.route_short_name) throw new Error('route missing id/name');
+          const idx=JSON.parse(fs.readFileSync('bus-shapes/index.json','utf8'));
+          if (!Array.isArray(idx.files)) throw new Error('index.files must be an array');
+          let n=0;
+          for (const f of idx.files) {
+            const r=JSON.parse(fs.readFileSync('bus-shapes/'+f,'utf8'));
+            if (!r.id || !r.route_short_name) throw new Error(f + ': route missing id/name');
             if (!Array.isArray(r.coordinates) || r.coordinates.length < 2)
               throw new Error(r.id + ' bad coordinates');
             for (const c of r.coordinates) {
@@ -29,6 +31,11 @@ jobs:
               if (!(lon>113 && lon<115 && lat>22 && lat<23))
                 throw new Error(r.id + ' out of HK bounds ' + lon + ',' + lat);
             }
+            n++;
           }
-          console.log('OK', j.routes.length, 'routes');
+          if (!n) console.log('WARN: no published routes');
+          const stub=JSON.parse(fs.readFileSync('bus-shapes.json','utf8'));
+          if (stub.split_index !== 'bus-shapes/index.json') throw new Error('stub must point at bus-shapes/index.json');
+          if (JSON.stringify(stub.files) !== JSON.stringify(idx.files)) throw new Error('stub.files out of sync with index.json');
+          console.log('OK', n, 'routes in', idx.files.length, 'files + stub');
           "

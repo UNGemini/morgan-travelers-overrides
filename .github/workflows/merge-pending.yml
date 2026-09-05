@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Merge pending → bus-shapes.json
+      - name: Merge pending → bus-shapes/<id>.json + index.json
         run: |
           EXTRA=""
           if [ "${{ inputs.remove_pending }}" = "true" ]; then
@@ -34,7 +34,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bus-shapes.json published/ pending/ || true
+          git add bus-shapes.json bus-shapes/ pending/ || true
           git diff --staged --quiet && echo "No changes" && exit 0
-          git commit -m "Publish path from ${{ inputs.pending_file }}"
+          ROUTES=$(node -e "console.log(JSON.parse(require('fs').readFileSync('bus-shapes/index.json','utf8')).files.length)")
+          git commit -m "Publish path from ${{ inputs.pending_file }} (${ROUTES} routes total)"
           git push
