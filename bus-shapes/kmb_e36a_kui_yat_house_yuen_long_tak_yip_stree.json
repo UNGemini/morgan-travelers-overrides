@@ -1,7 +1,6 @@
 {
-  "schema": "morgan.travelers.bus-shape.v1",
-  "status": "pending_review",
   "id": "kmb_e36a_kui_yat_house_yuen_long_tak_yip_stree",
+  "status": "published",
   "agency": "KMB",
   "route_short_name": "E36A",
   "route_id_match": [],
@@ -6566,6 +6565,6 @@
   ],
   "contributor": "UNGemini",
   "submitted_at": "2026-09-07T16:33:59.411Z",
-  "app_version": "0.4.0",
-  "received_at": "2026-09-07T16:33:59.607Z"
+  "published_at": "2026-09-07",
+  "source_draft_id": "kmb_e36a_kui_yat_house_yuen_long_tak_yip_stree"
 }
